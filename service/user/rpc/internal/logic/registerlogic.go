@@ -2,6 +2,9 @@ package logic
 
 import (
 	"context"
+	"go-zero-mall-learn/common/cryptx"
+	"go-zero-mall-learn/service/user/model"
+	"google.golang.org/grpc/status"
 
 	"go-zero-mall-learn/service/user/rpc/internal/svc"
 	"go-zero-mall-learn/service/user/rpc/user"
@@ -25,6 +28,36 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterResponse, error) {
 	// todo: add your logic here and delete this line
+	_, err := l.svcCtx.UserModel.FindOneByMobile(in.Mobile)
+	if err == nil {
+		return nil, status.Error(100, "该用户已存在")
+	}
 
-	return &user.RegisterResponse{}, nil
+	if err == model.ErrNotFound {
+		newUser := model.User{
+			Name:     in.Name,
+			Gender:   in.Gender,
+			Mobile:   in.Mobile,
+			Password: cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, in.Password),
+		}
+
+		res, err := l.svcCtx.UserModel.Insert(&newUser)
+		if err != nil {
+			return nil, status.Error(500, err.Error())
+
+		}
+
+		newUser.Id, err = res.LastInsertId()
+		if err != nil {
+			return nil, status.Error(500, err.Error())
+		}
+
+		return &user.RegisterResponse{
+			Id:     newUser.Id,
+			Name:   newUser.Name,
+			Gender: newUser.Gender,
+			Mobile: newUser.Mobile,
+		}, nil
+	}
+	return nil, status.Error(500, err.Error())
 }

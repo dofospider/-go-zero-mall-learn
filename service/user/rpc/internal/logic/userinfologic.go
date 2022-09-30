@@ -2,6 +2,8 @@ package logic
 
 import (
 	"context"
+	"go-zero-mall-learn/service/user/model"
+	"google.golang.org/grpc/status"
 
 	"go-zero-mall-learn/service/user/rpc/internal/svc"
 	"go-zero-mall-learn/service/user/rpc/user"
@@ -26,5 +28,17 @@ func NewUserInfoLogic(ctx context.Context, svcCtx *svc.ServiceContext) *UserInfo
 func (l *UserInfoLogic) UserInfo(in *user.UserInfoRequest) (*user.UserInfoResponse, error) {
 	// todo: add your logic here and delete this line
 
-	return &user.UserInfoResponse{}, nil
+	res, err := l.svcCtx.UserModel.FindOne(in.Id)
+	if err != nil {
+		if err == model.ErrNotFound {
+			return nil, status.Error(100, "用户不存在")
+		}
+		return nil, status.Error(500, err.Error())
+	}
+	return &user.UserInfoResponse{
+		Id:     res.Id,
+		Name:   res.Name,
+		Gender: res.Gender,
+		Mobile: res.Mobile,
+	}, nil
 }

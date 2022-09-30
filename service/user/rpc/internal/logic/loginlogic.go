@@ -2,6 +2,9 @@ package logic
 
 import (
 	"context"
+	"go-zero-mall-learn/common/cryptx"
+	"go-zero-mall-learn/service/user/model"
+	"google.golang.org/grpc/status"
 
 	"go-zero-mall-learn/service/user/rpc/internal/svc"
 	"go-zero-mall-learn/service/user/rpc/user"
@@ -25,6 +28,28 @@ func NewLoginLogic(ctx context.Context, svcCtx *svc.ServiceContext) *LoginLogic 
 
 func (l *LoginLogic) Login(in *user.LoginRequest) (*user.LoginResponse, error) {
 	// todo: add your logic here and delete this line
+	res, err := l.svcCtx.UserModel.FindOneByMobile(in.Mobile)
 
-	return &user.LoginResponse{}, nil
+	if err != nil {
+		if err == model.ErrNotFound {
+			return nil, status.Error(100, "用户不存在")
+
+		}
+
+		return nil, status.Error(500, err.Error())
+
+	}
+
+	password := cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, in.Password)
+	if password != res.Password {
+		return nil, status.Error(100, "密码错误")
+
+	}
+
+	return &user.LoginResponse{
+		Id:     res.Id,
+		Name:   res.Name,
+		Gender: res.Gender,
+		Mobile: res.Mobile,
+	}, nil
 }

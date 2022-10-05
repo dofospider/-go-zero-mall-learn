@@ -28,7 +28,7 @@ func NewRegisterLogic(ctx context.Context, svcCtx *svc.ServiceContext) *Register
 
 func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterResponse, error) {
 	// todo: add your logic here and delete this line
-	_, err := l.svcCtx.UserModel.FindOneByMobile(in.Mobile)
+	_, err := l.svcCtx.UserModel.FindOneByMobile(l.ctx, in.Mobile)
 	if err == nil {
 		return nil, status.Error(100, "该用户已存在")
 	}
@@ -41,7 +41,7 @@ func (l *RegisterLogic) Register(in *user.RegisterRequest) (*user.RegisterRespon
 			Password: cryptx.PasswordEncrypt(l.svcCtx.Config.Salt, in.Password),
 		}
 
-		res, err := l.svcCtx.UserModel.Insert(&newUser)
+		res, err := l.svcCtx.UserModel.Insert(l.ctx, &newUser)
 		if err != nil {
 			return nil, status.Error(500, err.Error())
 
